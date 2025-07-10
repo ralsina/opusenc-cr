@@ -4,17 +4,21 @@ require "../src/opusenc"
 class WavConverter
   def run
     input_file = ""
-    output_file = ""
+    output_target : String | IO = ""
     sample_rate = 48000
     channels = 1
+    use_stdout = false
 
     OptionParser.parse(ARGV) do |parser|
       parser.banner = "Usage: crystal run src/cli.cr [arguments]"
       parser.on("-i INPUT", "Input WAV file") do |value|
         input_file = value
       end
-      parser.on("-o OUTPUT", "Output Opus file") do |value|
-        output_file = value
+      parser.on("-o OUTPUT", "Output Opus file (ignored if --stdout is used)") do |value|
+        output_target = value
+      end
+      parser.on("--stdout", "Output to standard output") do
+        use_stdout = true
       end
       parser.on("-s SAMPLE_RATE", "Sample rate (default: 48000)") do |value|
         sample_rate = value.to_i
@@ -33,22 +37,30 @@ class WavConverter
       exit 1
     end
 
-    if output_file.empty?
-      puts "Error: Output file not specified."
+    if !use_stdout && output_target.to_s.empty?
+      puts "Error: Output file not specified. Use -o or --stdout."
       exit 1
     end
 
-    puts "Converting '#{input_file}' to '#{output_file}'..."
+    if use_stdout
+      puts "Converting '#{input_file}' to standard output..."
+      output_io = STDOUT
+    else
+      puts "Converting '#{input_file}' to '#{output_target}'..."
+      output_io = File.open(output_target.to_s, "wb")
+    end
 
     begin
       pcm_data = read_wav_file(input_file, sample_rate, channels)
-      encoder = Opusenc::Encoder.new(output_file, sample_rate, channels)
+      encoder = Opusenc::Encoder.new(output_io, sample_rate, channels)
       encoder.write(pcm_data)
       encoder.close
       puts "Conversion complete."
     rescue ex : Exception
       puts "Error during conversion: #{ex.message}"
       exit 1
+    ensure
+      output_io.close unless use_stdout # Close file if not STDOUT
     end
   end
 
