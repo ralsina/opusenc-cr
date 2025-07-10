@@ -8,8 +8,8 @@ A Crystal wrapper for the `libopusenc` library, providing high-level bindings fo
 
    ```yaml
    dependencies:
-     opusenc:
-       github: your-github-user/opusenc
+     opusenc-cr:
+       github: ralsina/opusenc-cr
    ```
 
 2. Run `shards install`
